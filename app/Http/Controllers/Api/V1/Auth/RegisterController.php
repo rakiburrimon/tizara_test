@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Http\Controllers\ApiBaseController;
 use App\Http\Requests\Authentication\LoginRequest;
 use App\Http\Requests\Authentication\RegisterRequest;
+use App\Jobs\SendDefaultEmailJob;
 use App\Mail\VerifyEmailMail;
 use App\Models\User;
+use App\Services\EmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +18,9 @@ use Illuminate\Support\Str;
 
 class RegisterController extends ApiBaseController
 {
+    /**
+     * The OTP service instance.
+     */
 	/**
      * Register a new user.
      */
@@ -39,7 +44,23 @@ class RegisterController extends ApiBaseController
                 'email_verification_token' => $verificationToken,
             ]);
             // Send the verification email
-            Mail::to($user->email)->send(new VerifyEmailMail($verificationToken, $user->email));
+            // Mail::to($user->email)->send(new VerifyEmailMail($verificationToken, $user->email));
+
+            // $emailService = new EmailService();
+            // $emailService->sendEmail(
+            //     $validatedData['email'],
+            //     'Registration',
+            //     'User Registration',
+            //     'title'
+            // );
+
+            SendDefaultEmailJob::dispatch($validatedData['email'],
+                'Registration',
+                'User Registration',
+                'title'
+            );
+
+
             // Commit the transaction
             DB::commit();
 
@@ -78,6 +99,8 @@ class RegisterController extends ApiBaseController
 
             // Generate a new token for the user
             $token = $user->createToken(config('app.name'))->plainTextToken;
+
+            $this->otpService->sendOtpEmail($otp);
 
             // Return a success response
             return $this->okResponse(['user' => $user, 'token' => $token], __('User logged in successfully'));
