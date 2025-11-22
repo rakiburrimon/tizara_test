@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\ApiBaseController;
+use App\Http\Requests\Authentication\LoginRequest;
 use App\Http\Requests\Authentication\RegisterRequest;
 use App\Mail\VerifyEmailMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -50,6 +52,41 @@ class RegisterController extends ApiBaseController
 
             // Return a server error response
             return $this->serverErrorResponse(['error' => $e->getMessage()], __('User registration failed'));
+        }
+    }
+
+    /**
+     * Login a user.
+     */
+    public function login(LoginRequest $request): JsonResponse
+    {
+        try {
+            $validatedData = $request->validated();
+            $user = User::where('email', $validatedData['email'])->first();
+
+            if (! $user) {
+                return $this->notFoundResponse([], __('User not found'));
+            }
+
+            // if (! $user->is_verified || ! $user->email_verified_at) {
+            //     return $this->forbiddenResponse([], __('User is not verified'));
+            // }
+
+            if (! Hash::check($validatedData['password'], $user->password)) {
+                return $this->unauthorizedResponse([], __('Invalid credentials'));
+            }
+
+            // Generate a new token for the user
+            $token = $user->createToken(config('app.name'))->plainTextToken;
+
+            // Return a success response
+            return $this->okResponse(['user' => $user, 'token' => $token], __('User logged in successfully'));
+        } catch (\Exception $e) {
+            // Log the error message
+            Log::error('User login error: ' . $e->getMessage());
+
+            // Return a server error response
+            return $this->serverErrorResponse(['error' => $e->getMessage()], __('User login failed'));
         }
     }
 }
