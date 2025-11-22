@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(function () {
                     require base_path('routes/api/v1/auth.php');
                     require base_path('routes/api/v1/product.php');
+                    require base_path('routes/api/v1/file.php');
                 }
             );
         }
