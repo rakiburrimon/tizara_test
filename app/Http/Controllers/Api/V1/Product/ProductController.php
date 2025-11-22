@@ -18,7 +18,25 @@ class ProductController extends ApiBaseController
     public function index(Request $request): JsonResponse
     {
         // Product list with pagination
-        $products = Product::paginate($request->input('per_page', 10));
+        $products = Product::query();
+
+        if ($request->input('name')) {
+            $products->where('name', 'like', '%' . $request->input('name') . '%');
+        }
+
+        if ($request->input('description')) {
+            $products->where('description', 'like', '%' . $request->input('description') . '%');
+        }
+
+        if ($request->input('max_price')) {
+            $products->where('price', '<=', $request->input('max_price'));
+        }
+
+        if ($request->input('min_price')) {
+            $products->where('price', '>=', $request->input('min_price'));
+        }
+
+        $products = $products->paginate($request->input('per_page', 10));
 
         return $this->okResponse(['products' => $products], __('Products retrieved successfully.'));
     }
